@@ -31,16 +31,16 @@ Description of available options:
   --disk-space-util   Reports disk space utilization in percentages.  
   --disk-space-used   Reports allocated disk space in gigabytes.
   --disk-space-avail  Reports available disk space in gigabytes.
-  
+
   --aggregated[=only]    Adds aggregated metrics for instance type, AMI id, and region.
                          If =only is specified, does not report individual instance metrics
   --auto-scaling[=only]  Reports Auto Scaling metrics in addition to instance metrics. 	 
                          If =only is specified, does not report individual instance metrics
-                         
+
   --mem-used-incl-cache-buff  Count memory that is cached and in buffers as used.
   --memory-units=UNITS        Specifies units for memory metrics.
   --disk-space-units=UNITS    Specifies units for disk space metrics.
-  
+
     Supported UNITS are bytes, kilobytes, megabytes, and gigabytes.
 
   --aws-credential-file=PATH  Specifies the location of the file with AWS credentials.
@@ -53,15 +53,15 @@ Description of available options:
   --verbose    Displays details of what the script is doing.
   --version    Displays the version number.
   --help       Displays detailed usage information.
-  
+
 Examples
- 
+
  To perform a simple test run without posting data to Amazon CloudWatch
- 
+
   ./mon-put-instance-data.pl --mem-util --verify --verbose
- 
+
  To set a five-minute cron schedule to report memory and disk space utilization to CloudWatch
-  
+
   */5 * * * * ~/aws-scripts-mon/mon-put-instance-data.pl --mem-util --disk-space-util --disk-path=/ --from-cron
 
 For more information on how to use this utility, see Amazon CloudWatch Developer Guide at
@@ -175,7 +175,7 @@ sub exit_with_error
 {
   my $message = shift;
   report_message(LOG_ERR, $message);
- 
+
   if (!$from_cron) {
     print STDERR "\nFor more information, run 'mon-put-instance-data.pl --help'\n\n";
   }
@@ -189,7 +189,7 @@ sub report_message
   my $log_level = shift;
   my $message = shift;
   chomp $message;
- 
+
   if ($from_cron)
   {
     setlogsock('unix');
@@ -379,7 +379,7 @@ if ($auto_scaling)
   $opts{'verify'} = $verify;
   $opts{'user-agent'} = "$client_name/$version";
   $opts{'aws-iam-role'} = $aws_iam_role;
-  
+
   my ($code, $reply) = CloudWatchClient::get_auto_scaling_group(\%opts);
 
   if ($code == 200) {
@@ -395,7 +395,7 @@ if ($auto_scaling)
     if (!$verify)
     {
       report_message(LOG_WARNING, "The Auto Scaling metrics will not be reported this time.");
-      
+
       if ($auto_scaling == AGGREGATED_ONLY) {
         print("\n") if (!$from_cron);
         exit 0;
@@ -421,20 +421,20 @@ sub add_single_metric
   my $unit = shift;
   my $value = shift;
   my $dims = shift;
-  
+
   my $metric = {};
 
   $metric->{"MetricName"} = $name;
   $metric->{"Timestamp"} = $timestamp;
   $metric->{"RawValue"} = $value;
   $metric->{"Unit"} = $unit;
-  
+
   my $dimensions = [];
   foreach my $key (sort keys %$dims)
   {
     push(@$dimensions, {"Name" => $key, "Value" => $dims->{$key}});
   }
-  
+
   $metric->{"Dimensions"} = $dimensions;  
   push(@{$input_ref->{'MetricData'}},  $metric);
   ++$mcount;
@@ -450,22 +450,22 @@ sub add_metric
   my $value = shift;
   my $filesystem = shift;
   my $mount = shift;
-  
+
   $input_ref->{'MetricData'} = [] if !(exists $input_ref->{'MetricData'});
-  
+
   my %dims = ();
   my %xdims = ();
   $xdims{'MountPath'} = $mount if $mount;
   $xdims{'Filesystem'} = $filesystem if $filesystem;
-  
+
   my $auto_scaling_only = defined($auto_scaling) && $auto_scaling == AGGREGATED_ONLY;
   my $aggregated_only = defined($aggregated) && $aggregated == AGGREGATED_ONLY;
-  
+
   if (!$auto_scaling_only && !$aggregated_only) {
     %dims = (('InstanceId' => $instance_id), %xdims);
     add_single_metric($name, $unit, $value, \%dims);
   }
-  
+
   if ($as_group_name) {
     %dims = (('AutoScalingGroupName' => $as_group_name), %xdims);
     add_single_metric($name, $unit, $value, \%dims);
@@ -519,7 +519,7 @@ if ($report_mem_util || $report_mem_used || $report_mem_avail || $report_swap_ut
   my $swap_total = $meminfo{'SwapTotal'} * KILO;
   my $swap_free = $meminfo{'SwapFree'} * KILO;  
   my $swap_used = $swap_total - $swap_free;
-  
+
   if ($report_mem_util) {
     my $mem_util = 0;
     $mem_util = 100 * $mem_used / $mem_total if ($mem_total > 0);
@@ -558,7 +558,7 @@ if ($report_disk_space)
     my $disk_avail = $fields[3] * KILO;
     my $fsystem = $fields[0];
     my $mount = $fields[5];
-    
+
     if ($report_disk_util) {
       my $disk_util = 0;
       $disk_util = 100 * $disk_used / $disk_total if ($disk_total > 0);
@@ -587,11 +587,11 @@ if ($mcount > 0)
   $opts{'user-agent'} = "$client_name/$version";
   $opts{'enable_compression'} = 1 if ($enable_compression);
   $opts{'aws-iam-role'} = $aws_iam_role;
-  
+
   my $response = CloudWatchClient::call_json('PutMetricData', \%params, \%opts);
   my $code = $response->code;
   my $message = $response->message;
-  
+
   if ($code == 200 && !$from_cron) {
     if ($verify) {
       print "\nVerification completed successfully. No actual metrics sent to CloudWatch.\n\n";

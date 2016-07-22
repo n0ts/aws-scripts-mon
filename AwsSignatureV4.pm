@@ -119,16 +119,16 @@ sub new_aws_json
   my $payload = shift;
   my $opts = shift;
   my $self = {payload => $payload, opts => $opts};
-  
+
   $self->{'content-type'} = 'application/x-amz-json-1.0';
-  
+
   if (not exists $opts->{'extra-headers'}) {
     $opts->{'extra-headers'} = {};
   }
-  
+
   my $extra_headers = $opts->{'extra-headers'};
   $extra_headers->{'X-Amz-Target'} = $operation;
-  
+
   bless $self, $class;
   return $self;
 }
@@ -152,15 +152,15 @@ sub sign_http_request
   $self->{'http-method'} = $method if $method;
   $self->{'content-type'} = $ctype if $ctype;
   $self->{'payload'} = $payload if $payload;
-  
+
   my $opts = $self->{opts};
   $opts->{'create-authz-header'} = 1;
   $self->{'request-url'} = $opts->{'url'};
-  
+
   if (!$self->sign()) {
     return 0;
   }
-  
+
   $self->create_authz_header();
   return 1;
 }
@@ -191,7 +191,7 @@ sub sign_http_get
   my $self = shift;
   my $opts = $self->{opts};
   $self->{'http-method'} = 'GET';
-  
+
   if (!$self->sign()) {
     return 0;
   }
@@ -206,11 +206,11 @@ sub sign_http_get
 
   $postfix .= ($query_string ? '&' : '?');
   $self->{'signed-url'} = $opts->{'url'}.$postfix.'X-Amz-Signature='.$self->{'signature'};
-  
+
   if ($opts->{'create-authz-header'}) {
     $self->create_authz_header();
   }
-  
+
   return 1;
 }
 
@@ -220,15 +220,15 @@ sub sign_http_get
 sub sign
 {
   my $self = shift;
-  
+
   if (!$self->initialize()) {
     return 0;
   }
-  
+
   $self->create_basic_headers();
-  $self->create_query_string();  
+  $self->create_query_string();
   $self->create_signature();
-  
+
   return 1;
 }
 
@@ -356,13 +356,13 @@ sub create_basic_headers
 {
   my $self = shift;
   my $opts = $self->{opts};
-  
+
   my %headers = ();
   $headers{'Host'} = $self->{'fqdn'};
-  
+
   my $extra_date_specified = 0;
   my $extra_headers = $opts->{'extra-headers'};
-  
+
   if ($extra_headers)
   {
     foreach my $extra_name ( keys %$extra_headers ) {
@@ -372,23 +372,23 @@ sub create_basic_headers
       }
     }
   }
-  
+
   if ($opts->{'aws-security-token'}) {
     $headers{'X-Amz-Security-Token'} = $opts->{'aws-security-token'};
   }
-  
+
   if (!$extra_date_specified && $opts->{'create-authz-header'}) {
     $headers{'X-Amz-Date'} = $self->{'timestamp'};
   }
-  
+
   if ($self->{'http-method'} ne 'GET' && $self->{'content-type'}) {
     $headers{'Content-Type'} = $self->{'content-type'};
   }
-  
+
   my %lc_headers = ();
   my $signed_headers = '';
   my $canonical_headers = '';
-  
+
   foreach my $header_name ( keys %headers ) {
     my $header_value = $headers{$header_name};
     # trim leading and trailing whitespaces, see
@@ -406,18 +406,18 @@ sub create_basic_headers
     $header_value = join '', @parts;
     $lc_headers{lc($header_name)} = $header_value;
   }
-  
+
   for my $lc_header (sort keys %lc_headers)
   {
     $signed_headers .= ';' if length($signed_headers) > 0;
     $signed_headers .= $lc_header;
     $canonical_headers .= $lc_header . ':' . $lc_headers{$lc_header} . "\n";
   }
-  
+
   $self->{'signed-headers'} = $signed_headers;
   $self->{'canonical-headers'} = $canonical_headers;
   $self->{'headers'} = \%headers;
-  
+
   return 1;
 }
 
@@ -428,27 +428,27 @@ sub initialize
 {
   my $self = shift;
   my $opts = $self->{opts};
-  
+
   my $url = $opts->{'url'};
   if (!$url) {
     $self->{'error'} = 'Endpoint URL is not specified.';
     return 0;
-  }  
+  }
   if (index($url, '?') != -1) {
     $self->{'error'} = 'Endpoint URL cannot contain query string.';
     return 0;
   }
-  
+
   my $akid = $opts->{'aws-access-key-id'};
   if (!$akid) {
     $self->{'error'} = 'AWS Access Key Id is not specified.';
     return 0;
-  }  
+  }
   if (!$opts->{'aws-secret-key'}) {
     $self->{'error'} = 'AWS Secret Key is not specified.';
     return 0;
   }
-  
+
   # obtain FQDN from the endpoint url
   my $fqdn = extract_fqdn_from_url($url);
   if (!$fqdn) {
@@ -464,7 +464,7 @@ sub initialize
     $region = extract_region_from_fqdn($fqdn);
   }
   $self->{'region'} = $region;
-  
+
   # use pre-defined service if specified, otherwise grab it from url
   # this is specifically important when url does not include service name, e.g. ses/mail
   my $service = $opts->{'aws-service'};
@@ -484,11 +484,11 @@ sub initialize
     return 0;
   }
   $self->{'http-path'} = $path;
-  
+
   # initialize time of the signature
-  
+
   my ($timestamp, $daystamp);
-  
+
   if ($opts->{'timestamp'}) {
     $timestamp = $opts->{'timestamp'};
     $daystamp = substr($timestamp, 0, 8);
@@ -500,15 +500,15 @@ sub initialize
   }
   $self->{'timestamp'} = $timestamp;
   $self->{'daystamp'} = $daystamp;
-  
+
   # initialize scope & credential
-  
+
   my $scope = "$daystamp/$region/$service/aws4_request";
   $self->{'scope'} = $scope;
-  
+
   my $credential = "$akid/$scope";
   $self->{'credential'} = $credential;
-  
+
   return 1;
 }
 
@@ -523,12 +523,12 @@ sub create_query_string
   my $self = shift;
   my $opts = $self->{opts};
   my $params = $self->{params};
-  
+
   if (!$params) {
     $self->{'query-string'} = '';
     return 1;
   }
-  
+
   my @args = ();
   my @keys = ();
 
@@ -543,28 +543,28 @@ sub create_query_string
       $params->{'X-Amz-Credential'} = $self->{'credential'};
       $params->{'X-Amz-SignedHeaders'} = $self->{'signed-headers'};
     }
-    
+
     if ($opts->{'aws-security-token'}) {
       $params->{'X-Amz-Security-Token'} = $opts->{'aws-security-token'};
     }
-    
+
     @keys = sort keys %{$params};
   }
   else # POST
   {
     @keys = keys %{$params};
   }
-  
+
   foreach my $key (@keys)
   {
     my $value = $params->{$key};
-    
+
     my ($ekey, $evalue) = (uri_escape_utf8($key, $UNSAFE_CHARACTERS), 
       uri_escape_utf8($value, $UNSAFE_CHARACTERS));
-    
+
     push @args, "$ekey=$evalue";
   }
-  
+
   my $aws_query_string = join '&', @args;
 
   if ($http_method eq 'GET')
@@ -577,7 +577,7 @@ sub create_query_string
     $self->{'query-string'} = '';
     $self->{'payload'} = $aws_query_string;
   }
-  
+
   return 1;
 }
 
@@ -601,7 +601,7 @@ sub create_canonical_request
   $canonical_request .= $self->{'canonical-headers'} . "\n";
   $canonical_request .= $self->{'signed-headers'} . "\n";
   $canonical_request .= sha256_hex($self->{'payload'});
-  
+
   $self->{'canonical-request'} = $canonical_request;
   return $canonical_request;
 }
@@ -617,16 +617,16 @@ sub create_string_to_sign
 {
   my $self = shift;
   my $opts = $self->{opts};
-  
+
   my $canonical_request = $self->create_canonical_request();
 
   my $string_to_sign = $ALGORITHM_NAME . "\n";
   $string_to_sign .= $self->{'timestamp'} . "\n";
   $string_to_sign .= $self->{'scope'} . "\n";
   $string_to_sign .= sha256_hex($canonical_request);
-  
+
   $self->{'string-to-sign'} = $string_to_sign;
-  
+
   return $string_to_sign;
 }
 
@@ -637,13 +637,13 @@ sub create_signature
 {
   my $self = shift;
   my $opts = $self->{opts};
-  
+
   my $ksecret = $opts->{'aws-secret-key'};
   my $kdate = hmac_sha256($self->{'daystamp'}, 'AWS4' . $ksecret);
   my $kregion = hmac_sha256($self->{'region'}, $kdate);
   my $kservice = hmac_sha256($self->{'service'}, $kregion);
   my $kcreds = hmac_sha256('aws4_request', $kservice);
-  
+
   my $string_to_sign = $self->create_string_to_sign();
   my $signature = hmac_sha256_hex($string_to_sign, $kcreds);
   $self->{'signature'} = $signature;
@@ -658,7 +658,7 @@ sub create_authz_header
 {
   my $self = shift;
   my $opts = $self->{opts};
-  
+
   my $credential = $self->{'credential'};
   my $signed_headers = $self->{'signed-headers'};
   my $signature = $self->{'signature'};
@@ -667,10 +667,10 @@ sub create_authz_header
     "$ALGORITHM_NAME Credential=$credential, ".
     "SignedHeaders=$signed_headers, ".
     "Signature=$signature";
-  
+
   my $headers = $self->{'headers'};
   $headers->{'Authorization'} = $authorization;
-  
+
   return 1;
 }
 

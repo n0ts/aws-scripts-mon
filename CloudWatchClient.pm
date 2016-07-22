@@ -22,7 +22,7 @@ use AwsSignatureV4;
 use DateTime;
 use Digest::SHA qw(hmac_sha256_base64);
 use URI::Escape qw(uri_escape_utf8);
-use Compress::Zlib;
+use Compress::Raw::Zlib;
 use LWP 6;
 
 use LWP::Simple qw($ua get);
@@ -76,7 +76,7 @@ our $avail_zone;
 our $instance_id;
 our $instance_type;
 our $image_id;
-our $as_group_name; 	 
+our $as_group_name;
 our $meta_data_loc = '/var/tmp/aws-mon';
 
 #
@@ -111,8 +111,8 @@ sub read_meta_data
   my $default_ttl = shift;
 
   my $location = $ENV{'AWS_EC2CW_META_DATA'};
-  if (!$location) { 	 
-    $location = $meta_data_loc if ($meta_data_loc); 	 
+  if (!$location) {
+    $location = $meta_data_loc if ($meta_data_loc);
   }
   my $meta_data_ttl = $ENV{'AWS_EC2CW_META_DATA_TTL'};
   $meta_data_ttl = $default_ttl if (!defined($meta_data_ttl));
@@ -143,31 +143,31 @@ sub read_meta_data
 }
 
 #
-# Writes meta-data to the local filesystem. 	 
-# 	 
-sub write_meta_data 	 
-{ 	 
-  my $resource = shift; 	 
-  my $data_value = shift; 	 
+# Writes meta-data to the local filesystem.
+#
+sub write_meta_data
+{
+  my $resource = shift;
+  my $data_value = shift;
 
-  if ($resource && $data_value) 	 
-  { 	 
-    my $location = $ENV{'AWS_EC2CW_META_DATA'}; 	 
-    if (!$location) { 	 
-      $location = $meta_data_loc if ($meta_data_loc); 	 
-    } 	 
+  if ($resource && $data_value)
+  {
+    my $location = $ENV{'AWS_EC2CW_META_DATA'};
+    if (!$location) {
+      $location = $meta_data_loc if ($meta_data_loc);
+    }
 
-    if ($location) 	 
-    { 	 
-      my $filename = $location.$resource; 	 
-      my $directory = dirname($filename); 	 
-      `/bin/mkdir -p $directory` unless -d $directory; 	 
+    if ($location)
+    {
+      my $filename = $location.$resource;
+      my $directory = dirname($filename);
+      `/bin/mkdir -p $directory` unless -d $directory;
 
-      open MDATA, ">$filename"; 	 
-      print MDATA $data_value; 	 
-      close MDATA; 	 
-    } 	 
-  } 	 
+      open MDATA, ">$filename";
+      print MDATA $data_value;
+      close MDATA;
+    }
+  }
 }
 
 #
@@ -179,7 +179,7 @@ sub get_ec2_endpoint
   my $endpoint = "https://ec2.amazonaws.com";
 
   if ($region) {
-    $endpoint = "https://ec2.$region.amazonaws.com"; 
+    $endpoint = "https://ec2.$region.amazonaws.com";
     if (exists $region_suffix_map{$region}) {
       $endpoint .= $region_suffix_map{$region};
     }

@@ -28,12 +28,12 @@ Description of available options:
   --verbose         Displays details of what the script is doing.
   --version         Displays the version number.
   --help            Displays detailed usage information.
-  
+
   --aws-credential-file=PATH  Specifies the location of the file with AWS credentials.
   --aws-access-key-id=VALUE   Specifies the AWS access key ID to use to identify the caller.
   --aws-secret-key=VALUE      Specifies the AWS secret key to use to sign the request.
   --aws-iam-role=VALUE        Specifies the IAM role used to provide AWS credentials.
-  
+
 For more information on how to use this utility, see Amazon CloudWatch Developer Guide at
 http://docs.amazonwebservices.com/AmazonCloudWatch/latest/DeveloperGuide/mon-scripts-perl.html
 
@@ -99,7 +99,7 @@ sub exit_with_error
   print STDERR "\nFor more information, run 'mon-get-instance-stats.pl --help'\n\n";
   exit 1;
 }
-  
+
 if (!$parse_result) {
   exit_with_error($parse_error);
 }
@@ -173,11 +173,11 @@ sub call_cloud_watch
   $call_opts{'verify'} = $verify;
   $call_opts{'user-agent'} = "$client_name/$version";
   $call_opts{'aws-iam-role'} = $aws_iam_role;
-  
+
   my $response = CloudWatchClient::call_json($operation, $params, \%call_opts);
   my $code = $response->code;
   my $message = $response->message;
-  
+
   if ($response->code < 100) {
     exit_with_error("Failed to initialize: $message");
   }
@@ -201,10 +201,10 @@ sub print_metric_stats
 
   my $start_time = CloudWatchClient::get_offset_time($recent_hours);
   my $end_time = CloudWatchClient::get_offset_time(NOW);
-  
+
   my %params = ();
   $params{'Input'} = {};
-  
+
   # Add basic metric options
   my $metric = $params{'Input'};
   $metric->{'Namespace'} = $namespace;
@@ -212,7 +212,7 @@ sub print_metric_stats
   $metric->{'Period'} = '300';
   $metric->{'StartTime'} = $start_time;
   $metric->{'EndTime'} = $end_time;
-  
+
   # Add stats to metric
   my $stats = [];
   push(@{$stats}, 'Average');
@@ -226,7 +226,7 @@ sub print_metric_stats
   $dimension->{'Name'} = 'InstanceId';
   $dimension->{'Value'} = $instance_id;
   push(@$dimensions, $dimension);
-  
+
   if (defined $extra_dims) 
   {
     while (my ($key, $value) = each(%$extra_dims)) 
@@ -238,34 +238,34 @@ sub print_metric_stats
     }
   }
   $metric->{"Dimensions"} = $dimensions;
-  
+
   my $response = call_cloud_watch('GetMetricStatistics', \%params);
-  
+
   my $content = $response->content;
   my $min;
   my $max;
   my $avg;
   my $count = 0;
-  
+
   while ($content =~ /\"Average\":(.*?)[,}]/g) {
     ++$count;
     $avg = 0 if !defined $avg;
     $avg += $1;
   }
   $avg /= $count if $count > 0;
-  
+
   while ($content =~ /\"Minimum\":(.*?)[,}]/g) {
     if (!defined($min) || $min > $1) {
       $min = $1;
     }
-  }  
-  
+  }
+
   while ($content =~ /\"Maximum\":(.*?)[,}]/g) {
     if (!defined($max) || $max < $1) {
       $max = $1;
     }
   }
-  
+
   print "\n$title\n    ";
   print "Average: ";
   if (defined $avg) {
@@ -299,25 +299,25 @@ sub print_filesystem_stats
 
   my %params = ();
   $params{'Input'} = {};
-  
+
   my $metric = $params{'Input'};
   $metric->{'Namespace'} = $namespace;
   $metric->{'MetricName'} = $metric_name;
-  
+
   my $dimensions = [];
   my $dimension = {};
   $dimension->{'Name'} = 'InstanceId';
   $dimension->{'Value'} = $instance_id;
   push(@{$dimensions}, $dimension);
-  
+
   $dimension = {};
   $dimension->{'Name'} = 'MountPath';
   $dimension->{'Value'} = '/';
   push(@{$dimensions}, $dimension);
   $metric->{'Dimensions'} = $dimensions;
-  
+
   my $response = call_cloud_watch('ListMetrics', \%params);
-  
+
   if ($response->content =~ /"Value":"\/dev\/(.*?)"/) {
     my $filesystem = "/dev/$1";
     my %extra_dims = ();
@@ -338,7 +338,7 @@ print_filesystem_stats();
 
 if ($verify) {
   print "\nVerification completed successfully. No actual calls were made to CloudWatch.\n";
-} 
+}
 
 print "\n";
 exit 0;
