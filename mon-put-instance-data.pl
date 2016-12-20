@@ -22,6 +22,7 @@ Usage: mon-put-instance-data.pl [options]
 
 Description of available options:
 
+  --docker-util       Reports Docker LVM Storage utilization. Needs sudo access!
   --mem-util          Reports memory utilization in percentages.
   --mem-used          Reports memory used in megabytes.
   --mem-avail         Reports available memory in megabytes.
@@ -107,6 +108,7 @@ my $version = '1.2.1';
 my $client_name = 'CloudWatch-PutInstanceData';
 
 my $mcount = 0;
+my $report_docker_util;
 my $report_mem_util;
 my $report_mem_used;
 my $report_mem_avail;
@@ -144,6 +146,7 @@ my $argv_size = @ARGV;
   $parse_result = GetOptions(
     'help|?' => \$show_help,
     'version' => \$show_version,
+    'docker-util' => \$report_docker_util,
     'mem-util' => \$report_mem_util,
     'mem-used' => \$report_mem_used,
     'mem-avail' => \$report_mem_avail,
@@ -207,6 +210,8 @@ sub report_message
     print "\nINFO: $message\n";
   }
 }
+
+sub trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
 
 if (!$parse_result) {
   exit_with_error($parse_error);
@@ -328,7 +333,7 @@ if (!$report_disk_space && ($report_disk_util || $report_disk_used || $report_di
 }
 
 # check that there is a need to monitor at least something
-if (!$report_mem_util && !$report_mem_used && !$report_mem_avail
+if (!$report_docker_util && !$report_mem_util && !$report_mem_used && !$report_mem_avail
   && !$report_swap_util && !$report_swap_used && !$report_disk_space)
 {
   exit_with_error("No metrics specified for collection and submission to CloudWatch.");
@@ -493,6 +498,14 @@ sub add_metric
 # avoid a storm of calls at the beginning of a minute
 if ($from_cron) {
   sleep(rand(20));
+}
+
+# collect docker logical volume storage metrics
+
+if ($report_docker_util)
+{
+	my $docker_storage_util = trim(`/sbin/vgs --options data_percent --noheadings`);
+	add_metric('DockerStorageUtilization', 'Percent', $docker_storage_util);
 }
 
 # collect memory and swap metrics
