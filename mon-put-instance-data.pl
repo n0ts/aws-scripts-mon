@@ -104,7 +104,7 @@ use constant
   NOW => 0,
 };
 
-my $version = '1.2.1-sveneh1.1';
+my $version = '1.2.1-n0ts1.1';
 my $client_name = 'CloudWatch-PutInstanceData';
 
 my $mcount = 0;
