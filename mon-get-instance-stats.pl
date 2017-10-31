@@ -17,7 +17,7 @@ our $usage = <<USAGE;
 
 Usage: mon-get-instance-stats.pl [options]
 
-  Queries Amazon CloudWatch for statistics on CPU, memory, swap, and
+  Queries Amazon CloudWatch for statistics on CPU, memory, swap, docker storage and
   disk space utilization within a given time interval. This data is
   provided for the Amazon EC2 instance on which this script is executed.
 
@@ -333,6 +333,7 @@ print "\nInstance $instance_id statistics for the last $recent_hours hour$plural
 
 print_metric_stats('AWS/EC2', 'CPUUtilization', 'CPU Utilization');
 print_metric_stats('System/Linux', 'MemoryUtilization', 'Memory Utilization');
+print_metric_stats('System/Linux', 'DockerStorageUtilization', 'Docker LVM Storage Utilization');
 print_metric_stats('System/Linux', 'SwapUtilization', 'Swap Utilization');
 print_filesystem_stats();
 

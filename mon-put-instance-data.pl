@@ -31,6 +31,7 @@ Description of available options:
   --disk-space-util   Reports disk space utilization in percentages.  
   --disk-space-used   Reports allocated disk space in gigabytes.
   --disk-space-avail  Reports available disk space in gigabytes.
+  --docker-util       Reports Docker LVM Storage utilization. Needs sudo access!
   
   --aggregated[=only]    Adds aggregated metrics for instance type, AMI id, and region.
                          If =only is specified, does not report individual instance metrics
@@ -103,7 +104,7 @@ use constant
   NOW => 0,
 };
 
-my $version = '1.2.1';
+my $version = '1.2.1-sveneh1.1';
 my $client_name = 'CloudWatch-PutInstanceData';
 
 my $mcount = 0;
@@ -115,6 +116,7 @@ my $report_swap_used;
 my $report_disk_util;
 my $report_disk_used;
 my $report_disk_avail;
+my $report_docker_util;
 my $mem_used_incl_cache_buff;
 my @mount_path;
 my $mem_units;
@@ -153,6 +155,7 @@ my $argv_size = @ARGV;
     'disk-space-util' => \$report_disk_util,
     'disk-space-used' => \$report_disk_used,
     'disk-space-avail' => \$report_disk_avail,
+    'docker-util' => \$report_docker_util,
     'auto-scaling:s' => \$auto_scaling,
     'aggregated:s' => \$aggregated,
     'memory-units:s' => \$mem_units,
@@ -207,6 +210,12 @@ sub report_message
     print "\nINFO: $message\n";
   }
 }
+
+sub trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
+
+
+
+# main
 
 if (!$parse_result) {
   exit_with_error($parse_error);
@@ -329,7 +338,7 @@ if (!$report_disk_space && ($report_disk_util || $report_disk_used || $report_di
 
 # check that there is a need to monitor at least something
 if (!$report_mem_util && !$report_mem_used && !$report_mem_avail
-  && !$report_swap_util && !$report_swap_used && !$report_disk_space)
+  && !$report_swap_util && !$report_swap_used && !$report_disk_space && !$report_docker_util)
 {
   exit_with_error("No metrics specified for collection and submission to CloudWatch.");
 }
@@ -572,6 +581,21 @@ if ($report_disk_space)
     }
   }
 }
+
+# collect docker logical volume storage metrics
+
+if ($report_docker_util)
+{       
+    my $login = (getpwuid $>);
+    if ($login ne 'root') {
+        exit_with_error('must run as root when using --docker-util');
+    }
+    my $docker_storage_util = `/sbin/vgs --options data_percent --noheadings`;
+    if (defined $docker_storage_util && $docker_storage_util eq '') {
+        exit_with_error('No LVM space defined. Is this a LVM backed docker storage setup?');
+    }                                   
+    add_metric('DockerStorageUtilization', 'Percent', trim($docker_storage_util));
+}        
 
 # send metrics over to CloudWatch if any
 
